@@ -88,6 +88,10 @@ ghostplay_command_and_fake() {
   ghostplay_prompt
 }
 
+ghostplay_command_and_fake_nonbreak() {
+  ghostplay_command "$1"
+}
+
 ghostplay_exec() {
   eval "$1"
 }
@@ -117,6 +121,9 @@ ghostplay_directive_silent() {
 
 ghostplay_directive_fake() {
   ghostplay_mode="fake"
+  if [ "$1" = "nonbreak" ]; then
+    ghostplay_mode="fake_nonbreak"
+  fi
 }
 
 ghostplay_directive_flush() {
@@ -125,6 +132,7 @@ ghostplay_directive_flush() {
     batch) ghostplay_command_and_exec "$ghostplay_buf" ;;
     silent) ghostplay_exec "$ghostplay_buf" ;;
     fake) ghostplay_command_and_fake "$ghostplay_buf" ;;
+    fake_nonbreak) ghostplay_command_and_fake_nonbreak "$ghostplay_buf" ;;
   esac
   ghostplay_buf=""
 }
