@@ -9,7 +9,7 @@ ghostplay_sigint_handler() {
 ghostplay_exit_handler() {
   max_line_number=`grep -c '' $GP_SOURCE`
   if [ $max_line_number -gt $GP_LINE_NUMBER ]; then
-    $0 $GP_SOURCE $GP_LINE_NUMBER # restart
+    $GP_SCRIPT $GP_SOURCE $GP_LINE_NUMBER # restart
   fi
   ghostplay_cleanup_handler
 }
@@ -176,7 +176,8 @@ eval "$(printf "GP_LF='\\012' GP_ESC='\\033'")"
 GP_USERNAME=$(whoami)
 GP_HOSTNAME=$(hostname)
 # shellcheck disable=SC2034
-GP_SOURCE=$1
+GP_SCRIPT=$(cd $(dirname $0); pwd)/$(basename $0)
+GP_SOURCE=$(cd $(dirname $1); pwd)/$(basename $1)
 GP_LINE_NUMBER=$2
 if [ -z "$GP_LINE_NUMBER" ]; then
   GP_LINE_NUMBER=0
