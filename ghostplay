@@ -1,12 +1,21 @@
 #!/bin/sh
 
-ghostplay_cleanup_handler() { :; }
+ghostplay_cleanup_handler() {
+  rm $GP_SOURCE_TEMP
+  exit 0
+}
 
 ghostplay_sigint_handler() {
   exit 1
 }
 
 ghostplay_exit_handler() {
+  tmpfile=$(mktemp "/tmp/ghostplay.XXXXXX")
+  tail -n +$GP_LINE_NUMBER $GP_SOURCE_TEMP > $tmpfile
+  mv $tmpfile $GP_SOURCE_TEMP
+  if [ $GP_LINE_NUMBER -gt 1 ]; then
+    $0 $GP_SOURCE_TEMP
+  fi
   ghostplay_cleanup_handler
 }
 
@@ -134,6 +143,7 @@ ghostplay_parse_script() {
   ghostplay_buf=""
 
   while IFS= read -r ghostplay_line || [ "$ghostplay_line" ]; do
+    GP_LINE_NUMBER=`expr $GP_LINE_NUMBER + 1`
     ghostplay_work=$ghostplay_line
 
     while [ "$ghostplay_work" != "${ghostplay_work# }" ]; do
@@ -159,13 +169,16 @@ GP_USERNAME=$(whoami)
 GP_HOSTNAME=$(hostname)
 # shellcheck disable=SC2034
 GP_SOURCE=$1
+GP_SOURCE_TEMP=$(mktemp "/tmp/ghostplay.XXXXXX")
+GP_LINE_NUMBER=1
+cp $GP_SOURCE $GP_SOURCE_TEMP
 
 [ "${SHELLSPEC_VERSION:-}" ] && return 0
 
 trap 'ghostplay_sigint_handler' INT
 trap 'ghostplay_exit_handler' EXIT
 
-ghostplay_run < "$1"
+ghostplay_run < "$GP_SOURCE_TEMP"
 
 # workaround: seq2gif is lose the last line.
 echo
