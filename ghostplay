@@ -152,7 +152,7 @@ ghostplay_parse_script() {
 
     case $ghostplay_work in
       "#ghostplay "*) eval "ghostplay_directive_${ghostplay_work#"#ghostplay "}" ;;
-      "" | "#!"*) ;;
+      "" | "#!"* | "#"*) ;;
       *) ghostplay_line "$ghostplay_line" ;;
     esac
   done
