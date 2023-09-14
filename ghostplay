@@ -1,20 +1,15 @@
 #!/bin/sh
 
-ghostplay_cleanup_handler() {
-  rm $GP_SOURCE_TEMP
-  exit 0
-}
+ghostplay_cleanup_handler() { :; }
 
 ghostplay_sigint_handler() {
   exit 1
 }
 
 ghostplay_exit_handler() {
-  tmpfile=$(mktemp "/tmp/ghostplay.XXXXXX")
-  tail -n +$GP_LINE_NUMBER $GP_SOURCE_TEMP > $tmpfile
-  mv $tmpfile $GP_SOURCE_TEMP
-  if [ $GP_LINE_NUMBER -gt 1 ]; then
-    $0 $GP_SOURCE_TEMP
+  max_line_number=`grep -c '' $GP_SOURCE`
+  if [ $max_line_number -gt $GP_LINE_NUMBER ]; then
+    $0 $GP_SOURCE $GP_LINE_NUMBER # restart
   fi
   ghostplay_cleanup_handler
 }
@@ -150,8 +145,12 @@ ghostplay_parse_script() {
   ghostplay_mode=""
   ghostplay_buf=""
 
+  skip_count=$GP_LINE_NUMBER
   while IFS= read -r ghostplay_line || [ "$ghostplay_line" ]; do
-    GP_LINE_NUMBER=`expr $GP_LINE_NUMBER + 1`
+    skip_count=`expr $skip_count - 1`
+    if [ $skip_count -gt 0 ]; then
+      continue
+    fi
     ghostplay_work=$ghostplay_line
 
     while [ "$ghostplay_work" != "${ghostplay_work# }" ]; do
@@ -163,6 +162,7 @@ ghostplay_parse_script() {
       "" | "#!"* | "#"*) ;;
       *) ghostplay_line "$ghostplay_line" ;;
     esac
+    GP_LINE_NUMBER=`expr $GP_LINE_NUMBER + 1`
   done
 }
 
@@ -177,16 +177,17 @@ GP_USERNAME=$(whoami)
 GP_HOSTNAME=$(hostname)
 # shellcheck disable=SC2034
 GP_SOURCE=$1
-GP_SOURCE_TEMP=$(mktemp "/tmp/ghostplay.XXXXXX")
-GP_LINE_NUMBER=1
-cp $GP_SOURCE $GP_SOURCE_TEMP
+GP_LINE_NUMBER=$2
+if [ -z "$GP_LINE_NUMBER" ]; then
+  GP_LINE_NUMBER=0
+fi
 
 [ "${SHELLSPEC_VERSION:-}" ] && return 0
 
 trap 'ghostplay_sigint_handler' INT
 trap 'ghostplay_exit_handler' EXIT
 
-ghostplay_run < "$GP_SOURCE_TEMP"
+ghostplay_run < "$GP_SOURCE"
 
 # workaround: seq2gif is lose the last line.
 echo
